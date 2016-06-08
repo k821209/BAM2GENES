@@ -17,5 +17,4 @@ T2-1_C09_S33.sam.sorted.bam     Cre17.g704850.v5.5      0.994505494505  0.644688
 ```
 - Total.depth : sum(depth per base on gene region)
 - Depth : Total.depth/genelength
-
-
+- 1.continuity_top_three.SE.py is for single end bam file
