@@ -84,12 +84,18 @@ for line in tqdm(it):#$open('temp.sam.cut'): # should be changed to zero base ma
     fragmentsize = line.tlen
     qname        = line.qname
     echr         = dicChr2N[chromosome]
-    if fragmentsize > 200:
-        pass
-    else: continue
-    endpos         = startpos + fragmentsize  # minus 1 for continuity value -> removed for this time just coverage purpose
 
-    continuity_matrix[echr,startpos:endpos] += 1  # list characteristic can utillize fragment size itself.
+    if line.mpos - startpos > 0 :
+        continuity_matrix[echr,startpos:line.mpos] += 1  # list characteristic can utillize fragment size itself.
+    else:
+        continuity_matrix[echr,startpos:startpos+line.reference_length] += 1 # minus 1 for continuity value -> removed for this time just coverage purpose
+
+    #if fragmentsize > 200:
+    #    pass
+    #else: continue
+    #endpos         = startpos + fragmentsize  # minus 1 for continuity value -> removed for this time just coverage purpose
+    #
+    #continuity_matrix[echr,startpos:endpos] += 1  # list characteristic can utillize fragment size itself.
 
 array_contiguity = continuity_matrix
 
