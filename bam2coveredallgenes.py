@@ -57,6 +57,7 @@ dicN2chr          = dict(enumerate(chromosomes))
 dicChr2N          = {b:a for a,b in dicN2chr.iteritems()}
 columns           = max([len(x) for x in dicHD2seq.values()])-1
 continuity_matrix = np.zeros([rows,columns],dtype=np.int)
+match_matrix      = np.zeros([rows,columns],dtype=np.int)
 #Outfile = open('chromosome.map.txt','w')
 #for a,b in dicChr2N.iteritems():
 #    print(a,b,sep='\t',file=Outfile)
@@ -84,7 +85,15 @@ for line in tqdm(it):#$open('temp.sam.cut'): # should be changed to zero base ma
     fragmentsize = line.tlen
     qname        = line.qname
     echr         = dicChr2N[chromosome]
-
+    cigars       = line.cigartuples
+    adding_len   = 0 
+    for o,l in cigars: # operation, length
+        if o == 0:
+            match_matrix[echr,startpos+adding_len:startpos+adding_len+l] += 1
+            adding_len += l  
+        else:
+            adding_len += l
+    
     if line.mpos - startpos > 0 :
         continuity_matrix[echr,startpos:line.mpos] += 1  # list characteristic can utillize fragment size itself.
     else:
@@ -109,6 +118,8 @@ dic = {'mRNA'       : [],
        'coverage (1x)'   : [],
        'coverage (10x)'   : [],
        'coverage (30x)'   : [],
+       'match' : [],
+       'match.ratio' :[]
       }
 genelist = set([x for x,y in df_gff_cre.index])
 for genename in tqdm(genelist):
@@ -117,7 +128,6 @@ for genename in tqdm(genelist):
             continue
     except ValueError:
         pass
-    #print type(genename)
     df      = df_gff_cre.loc[genename]
     mask    = (df[2]=='CDS')
     df_mRNA = df[mask].loc['1']
@@ -132,21 +142,23 @@ for genename in tqdm(genelist):
             print('?!')
             exit()
         covered_array = []
+        matched_array = []
         for i in range(r):
          
             left       = array[i,:][0] #int(df_mRNA[3])
             right      = array[i,:][1] #int(df_mRNA[4])
             echr       = dicChr2N[chromosome]
             contiguity = list(array_contiguity[echr][left-1:right]) # continuity value require minus 1 from right pos
+            matched    = list(match_matrix[echr][left-1:right])
             covered_array += contiguity
+            matched_array += matched
     except ValueError:
         left  = array[0]
         right = array[1]
         echr       = dicChr2N[chromosome]
         covered_array = list(array_contiguity[echr][left-1:right]) # continuity value require minus 1 from right pos
+        matched_array = list(match_matrix[echr][left-1:right])
     covered_array = np.array(covered_array)
-    #covered_array_10 = covered_array-9
-    #covered_array_30 = covered_array-29
     length = len(covered_array)
     if 1:
         dic['mRNA'].append(genename)
@@ -156,6 +168,8 @@ for genename in tqdm(genelist):
         dic['coverage (1x)'].append(len((covered_array >= 1).nonzero()[0])/float(length))
         dic['coverage (10x)'].append(len((covered_array >= 10).nonzero()[0])/float(length))
         dic['coverage (30x)'].append(len((covered_array >= 30).nonzero()[0])/float(length))
+        dic['match'].append(sum(matched_array))
+        dic['match.ratio'].append(float(sum(matched_array))/float(length))
 
 df_cont = pd.DataFrame(dic)
 #df_cont_ix = df_cont.set_index('mRNA')
@@ -164,9 +178,9 @@ df_cont = pd.DataFrame(dic)
 
 #array = df_cont.sort_values(by='total.depth',ascending=False).head(3)[['mRNA','coverage (1x)','coverage (10x)','coverage (30x)','ratio.depth','total.depth']].values.ravel()
 
-mask  = (df_cont['coverage (1x)'] > 0.8)
+mask  = (df_cont['coverage (1x)'] > 0.8) & (df_cont['match.ratio'] > 0.6)
 df_cont_cov = df_cont[mask]
-matrix = df_cont_cov.sort_values(by='total.depth',ascending=False)[['mRNA','coverage (1x)','coverage (10x)','coverage (30x)','ratio.depth','total.depth']].values
+matrix = df_cont_cov.sort_values(by='total.depth',ascending=False)[['mRNA','coverage (1x)','coverage (10x)','coverage (30x)','ratio.depth','total.depth','match','match.ratio']].values
 np.savetxt(file_bam+'.all.txt',matrix,fmt='%s',delimiter='\t')
 #Outfile = open(file_bam+'.all.txt','w')
 #print(file_bam, '\t'.join(map(str,array)),sep='\t',file=Outfile)
