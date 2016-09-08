@@ -89,7 +89,7 @@ for line in tqdm(it):#$open('temp.sam.cut'): # should be changed to zero base ma
     adding_len   = 0 
     for o,l in cigars: # operation, length
         if o == 0:
-            match_matrix[echr,startpos+adding_len:startpos+adding_len+l] += 1
+            match_matrix[echr,startpos+adding_len:startpos+adding_len+l] = 1
             adding_len += l  
         else:
             adding_len += l
