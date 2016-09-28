@@ -12,6 +12,7 @@ import kang
 import math
 file_bam = sys.argv[1] #'intron3000.merge.sorted.bam'
 file_fa = sys.argv[2]  #'Creinhardtii_281_v5.0.fa'
+file_pk = sys.argv[3] # '/ref/analysis/pipelines/pandas_df/Creinhardtii_281_v5.5.gene.gff3.pandas.df.pk'
 dicHD2seq = kang.Fasta2dic(file_fa)
 
 def get_block(array,depth_cut=0):
@@ -56,6 +57,7 @@ chromosomes.sort()
 dicN2chr          = dict(enumerate(chromosomes))
 dicChr2N          = {b:a for a,b in dicN2chr.iteritems()}
 columns           = max([len(x) for x in dicHD2seq.values()])-1
+print(rows,columns)
 continuity_matrix = np.zeros([rows,columns],dtype=np.int)
 match_matrix      = np.zeros([rows,columns],dtype=np.int)
 #Outfile = open('chromosome.map.txt','w')
@@ -107,8 +109,6 @@ for line in tqdm(it):#$open('temp.sam.cut'): # should be changed to zero base ma
     #continuity_matrix[echr,startpos:endpos] += 1  # list characteristic can utillize fragment size itself.
 
 array_contiguity = continuity_matrix
-
-file_pk = '/ref/analysis/pipelines/pandas_df/Creinhardtii_281_v5.5.gene.gff3.pandas.df.pk'
 
 df_gff_cre = pd.read_pickle(file_pk)
 dic = {'mRNA'       : [],
