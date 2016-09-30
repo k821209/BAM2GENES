@@ -58,8 +58,8 @@ dicN2chr          = dict(enumerate(chromosomes))
 dicChr2N          = {b:a for a,b in dicN2chr.iteritems()}
 columns           = max([len(x) for x in dicHD2seq.values()])-1
 print(rows,columns)
-continuity_matrix = np.zeros([rows,columns],dtype=np.int)
-match_matrix      = np.zeros([rows,columns],dtype=np.int)
+continuity_matrix = np.zeros([rows,columns],dtype=np.int16)
+match_matrix      = np.zeros([rows,columns],dtype=np.int16)
 #Outfile = open('chromosome.map.txt','w')
 #for a,b in dicChr2N.iteritems():
 #    print(a,b,sep='\t',file=Outfile)
@@ -109,6 +109,7 @@ for line in tqdm(it):#$open('temp.sam.cut'): # should be changed to zero base ma
     #continuity_matrix[echr,startpos:endpos] += 1  # list characteristic can utillize fragment size itself.
 
 array_contiguity = continuity_matrix
+np.save(file_bam+'.cov.npy', array_contiguity)
 
 df_gff_cre = pd.read_pickle(file_pk)
 dic = {'mRNA'       : [],
@@ -121,13 +122,10 @@ dic = {'mRNA'       : [],
        'match' : [],
        'match.ratio' :[]
       }
-genelist = set([x for x,y in df_gff_cre.index])
+
+genelist = list(set(df_gff_cre.reset_index()['genename'].dropna()))
+
 for genename in tqdm(genelist):
-    try:
-        if math.isnan(float(genename)):
-            continue
-    except ValueError:
-        pass
     df      = df_gff_cre.loc[genename]
     mask    = (df[2]=='CDS')
     for ix in set(df[mask].index):
