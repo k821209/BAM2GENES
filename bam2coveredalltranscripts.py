@@ -12,7 +12,6 @@ import kang
 import math
 file_bam = sys.argv[1] #'intron3000.merge.sorted.bam'
 file_fa = sys.argv[2]  #'Creinhardtii_281_v5.0.fa'
-file_pk = sys.argv[3] # '/ref/analysis/pipelines/pandas_df/Creinhardtii_281_v5.5.gene.gff3.pandas.df.pk'
 dicHD2seq = kang.Fasta2dic(file_fa)
 
 def get_block(array,depth_cut=0):
@@ -57,9 +56,8 @@ chromosomes.sort()
 dicN2chr          = dict(enumerate(chromosomes))
 dicChr2N          = {b:a for a,b in dicN2chr.iteritems()}
 columns           = max([len(x) for x in dicHD2seq.values()])-1
-print(rows,columns)
-continuity_matrix = np.zeros([rows,columns],dtype=np.int16)
-match_matrix      = np.zeros([rows,columns],dtype=np.int16)
+continuity_matrix = np.zeros([rows,columns],dtype=np.int)
+match_matrix      = np.zeros([rows,columns],dtype=np.int)
 #Outfile = open('chromosome.map.txt','w')
 #for a,b in dicChr2N.iteritems():
 #    print(a,b,sep='\t',file=Outfile)
@@ -109,7 +107,8 @@ for line in tqdm(it):#$open('temp.sam.cut'): # should be changed to zero base ma
     #continuity_matrix[echr,startpos:endpos] += 1  # list characteristic can utillize fragment size itself.
 
 array_contiguity = continuity_matrix
-np.save(file_bam+'.cov.npy', array_contiguity)
+
+file_pk = '/ref/analysis/pipelines/pandas_df/Creinhardtii_281_v5.5.gene.gff3.pandas.df.pk'
 
 df_gff_cre = pd.read_pickle(file_pk)
 dic = {'mRNA'       : [],
@@ -122,18 +121,22 @@ dic = {'mRNA'       : [],
        'match' : [],
        'match.ratio' :[]
       }
-
-genelist = list(set(df_gff_cre.reset_index()['genename'].dropna()))
-
+genelist = set([x for x,y in df_gff_cre.index])
 for genename in tqdm(genelist):
+    try:
+        if math.isnan(float(genename)):
+            continue
+    except ValueError:
+        pass
     df      = df_gff_cre.loc[genename]
     mask    = (df[2]=='CDS')
-    for ix in set(df[mask].index):
-        df_mRNA         = df[mask].loc[ix]
+    sub_df = df[mask].reset_index().set_index('transcriptname')
+    for ix in set(sub_df.index):
+        df_mRNA         = sub_df.loc[ix]
         if isinstance(df_mRNA, pd.Series):
-            transcript_name = df_mRNA['transcriptname']
+            transcript_name = ix
         else:
-            transcript_name = df_mRNA['transcriptname'][0]
+            transcript_name = ix
         try:
             chromosome = df_mRNA[0].values[0]
         except AttributeError:
