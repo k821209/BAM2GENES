@@ -6,12 +6,13 @@ import numpy as np
 import pandas as pd
 import sys
 from tqdm import tqdm
-sys.path.append('/ref/analysis/pipelines/')
+sys.path.append('/mnt/c/ubuntu.download/pipelines/')
 import pysam
 import kang
 import math
 file_bam = sys.argv[1] #'intron3000.merge.sorted.bam'
 file_fa = sys.argv[2]  #'Creinhardtii_281_v5.0.fa'
+file_pk = sys.argv[3] 
 dicHD2seq = kang.Fasta2dic(file_fa)
 
 def get_block(array,depth_cut=0):
@@ -106,9 +107,10 @@ for line in tqdm(it):#$open('temp.sam.cut'): # should be changed to zero base ma
     #
     #continuity_matrix[echr,startpos:endpos] += 1  # list characteristic can utillize fragment size itself.
 
+np.save('match.npy',match_matrix)
+np.save('contig.npy',continuity_matrix)
 array_contiguity = continuity_matrix
 
-file_pk = '/ref/analysis/pipelines/pandas_df/Creinhardtii_281_v5.5.gene.gff3.pandas.df.pk'
 
 df_gff_cre = pd.read_pickle(file_pk)
 dic = {'mRNA'       : [],
@@ -133,16 +135,18 @@ for genename in tqdm(genelist):
     sub_df = df[mask].reset_index().set_index('transcriptname')
     for ix in set(sub_df.index):
         df_mRNA         = sub_df.loc[ix]
+        transcript_name = ix
+        
         if isinstance(df_mRNA, pd.Series):
-            transcript_name = ix
-        else:
-            transcript_name = ix
-        try:
-            chromosome = df_mRNA[0].values[0]
-        except AttributeError:
             chromosome = df_mRNA[0]
-        array      = df_mRNA[[3,4]].values
-        try:
+            left  = df_mRNA[3]
+            right = df_mRNA[4]
+            echr       = dicChr2N[chromosome]
+            covered_array = list(array_contiguity[echr][left-1:right]) # continuity value require minus 1 from right pos
+            matched_array = list(match_matrix[echr][left-1:right])
+        else:
+            chromosome = df_mRNA[0][0]
+            array      = df_mRNA[[3,4]].values
             r,c        = np.shape(array)
             if c != 2 :
                 print('?!')
@@ -150,7 +154,7 @@ for genename in tqdm(genelist):
             covered_array = []
             matched_array = []
             for i in range(r):
-         
+
                 left       = array[i,:][0] #int(df_mRNA[3])
                 right      = array[i,:][1] #int(df_mRNA[4])
                 echr       = dicChr2N[chromosome]
@@ -158,12 +162,8 @@ for genename in tqdm(genelist):
                 matched    = list(match_matrix[echr][left-1:right])
                 covered_array += contiguity
                 matched_array += matched
-        except ValueError:
-            left  = array[0]
-            right = array[1]
-            echr       = dicChr2N[chromosome]
-            covered_array = list(array_contiguity[echr][left-1:right]) # continuity value require minus 1 from right pos
-            matched_array = list(match_matrix[echr][left-1:right])
+
+
         covered_array = np.array(covered_array)
         length = len(covered_array)
         dic['mRNA'].append(transcript_name)
