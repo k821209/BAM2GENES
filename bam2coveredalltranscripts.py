@@ -124,25 +124,27 @@ dic = {'mRNA'       : [],
        'match.ratio' :[]
       }
 genelist = set([x for x,y in df_gff_cre.index])
+
 for genename in tqdm(genelist):
     try:
         if math.isnan(float(genename)):
             continue
     except ValueError:
         pass
-    df      = df_gff_cre.loc[genename]
-    mask    = (df[2]=='CDS')
-    sub_df = df[mask].reset_index().set_index('transcriptname')
+    df          = df_gff_cre.loc[genename]
+    mask        = (df[2]=='CDS')
+    sub_df      = df[mask].reset_index().set_index('transcriptname')
+    mask        = df[2] == 'mRNA'
+    sub_df_mRNA = df[mask].reset_index().set_index('transcriptname')
     for ix in set(sub_df.index):
+        #+ Match array start 
         df_mRNA         = sub_df.loc[ix]
         transcript_name = ix
-        
         if isinstance(df_mRNA, pd.Series):
-            chromosome = df_mRNA[0]
-            left  = df_mRNA[3]
-            right = df_mRNA[4]
-            echr       = dicChr2N[chromosome]
-            covered_array = list(array_contiguity[echr][left-1:right]) # continuity value require minus 1 from right pos
+            chromosome    = df_mRNA[0]
+            left          = df_mRNA[3]
+            right         = df_mRNA[4]
+            echr          = dicChr2N[chromosome]
             matched_array = list(match_matrix[echr][left-1:right])
         else:
             chromosome = df_mRNA[0][0]
@@ -151,17 +153,25 @@ for genename in tqdm(genelist):
             if c != 2 :
                 print('?!')
                 exit()
-            covered_array = []
             matched_array = []
             for i in range(r):
 
                 left       = array[i,:][0] #int(df_mRNA[3])
                 right      = array[i,:][1] #int(df_mRNA[4])
                 echr       = dicChr2N[chromosome]
-                contiguity = list(array_contiguity[echr][left-1:right]) # continuity value require minus 1 from right pos
                 matched    = list(match_matrix[echr][left-1:right])
-                covered_array += contiguity
                 matched_array += matched
+         #- 
+          
+         #+ Cov array
+        df_mRNA    = sub_df_mRNA.loc[ix]
+        chromosome = df_mRNA[0]
+        left       = df_mRNA[3]
+        right      = df_mRNA[4]
+        echr       = dicChr2N[chromosome]
+        covered_array = list(array_contiguity[echr][left-1:right])
+         #= 
+         
 
 
         covered_array = np.array(covered_array)
@@ -175,6 +185,7 @@ for genename in tqdm(genelist):
         dic['coverage (30x)'].append(len((covered_array >= 30).nonzero()[0])/float(length))
         dic['match'].append(sum(matched_array))
         dic['match.ratio'].append(float(sum(matched_array))/float(length))
+
 
 df_cont = pd.DataFrame(dic)
 
