@@ -176,6 +176,7 @@ for genename in tqdm(genelist):
 
         covered_array = np.array(covered_array)
         length = len(covered_array)
+        length_match = len(matched_array)
         dic['mRNA'].append(transcript_name)
         dic['length'].append(length)
         dic['total.depth'].append(sum(covered_array))
@@ -184,7 +185,7 @@ for genename in tqdm(genelist):
         dic['coverage (10x)'].append(len((covered_array >= 10).nonzero()[0])/float(length))
         dic['coverage (30x)'].append(len((covered_array >= 30).nonzero()[0])/float(length))
         dic['match'].append(sum(matched_array))
-        dic['match.ratio'].append(float(sum(matched_array))/float(length))
+        dic['match.ratio'].append(float(sum(matched_array))/float(length_match))
 
 
 df_cont = pd.DataFrame(dic)
